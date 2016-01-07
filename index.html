@@ -41,32 +41,54 @@
 
 <p>The tool can easily be used by any GIS analyst familiar with running analysis in ArcGIS and formatting data files in excel or notepad. The maps may be useful for marketing and membership recruitment  campaigns. It takes approx 3 hours to produce a set of maps for a county.</p>
 
+<h1>
+<a id="instructions-for-use" class="anchor" href="#instructions-for-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions for use</h1>
+
+<p>Download and unzip the folder onto your computer. You must have ArcGIS 10.2.2 and a Spatial Analyst licence. The easiest way to learn how to use the toolbox is to run the tool using the supplied example data, view the maps and PDFs that are created and examine the input data.</p>
+
+<h1>
+<a id="running-the-tool" class="anchor" href="#running-the-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running the tool</h1>
+
+<p>Open ArcCatalog, navigate to the folder holding MembershipMap, expand the toolbox to view the tool "Map membership locations". Right click and open the tool. The tool is set to use a set of example data (random locations, not actual memberships) for County Durham. View the types of data being used and check the options and data locations. Click OK. The tool will run and produce example maps and PDFs. Examine these to understand the types of data created by the tool.</p>
+
+<h1>
+<a id="interpreting-the-maps" class="anchor" href="#interpreting-the-maps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interpreting the maps</h1>
+
+<p>Six PDF maps and associated ArcMaps are produced. The number of members, number of memberships and the % of the local population that are members are each mapped as Standard Deviations rather than the actual data values.  This allows the average values for the Study Area to be easily compared to those areas that have unusually high or low values. Areas with clusters of members can be identified as well as areas where membership is low. </p>
+
+<h1>
+<a id="adding-your-data" class="anchor" href="#adding-your-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding your data</h1>
+
+<p>The tool requires you to add one essential dataset (Memberships.csv) and also optionally uses one further dataset (Reserves.csv). Firstly you must supply a file to locate your organisation members. View the examples in the 2 Inputs Data folder to see the required format, notes are also provided at the end of this document. Save a copy of your membership data to replace the example file.  In order to also map the location of wildlife reserves an optional dataset "Reserves.csv" can be included. If you are an advanced user you will see that from the tool dialogue you can navigate to both of the above datasets without needing to rename or move them into the tool folder. However it is often preferable to copy and rename the files. </p>
+
+<h1>
+<a id="optional-settings" class="anchor" href="#optional-settings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optional settings</h1>
+
+<p>You can alter several of the settings to control how the maps are produced. These include the buffer distance around your Study Area and the size of the grid cells used in the density mapping. A range of cell sizes between 1,000 and 5,000 are suitable for use in different sizes Study Areas. You can set different travel zone distances to customise the analysis to travel behaviour in your area. A main consideration is the use of the buffer zone distance. Larger zones will include more nearby members from adjacent areas but will also increase the mapped area and the populations used to calculate all statistics. Ideally run two set of analysis with small and larger buffer zones and compare the results. </p>
+
+<h1>
+<a id="further-development" class="anchor" href="#further-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further development</h1>
+
+<p>This toolbox has been shared with Wildlife Trusts across the UK.  I'd be pleased to hear of any improvements or additional features that could be added. If you would like to contribute to future versions please collaborate via GitHub. There is considerable scope for inclusion of further segmentation metrics and spatial analysis to target areas for marketing or events. </p>
+
+<h2>
+<a id="data-credits" class="anchor" href="#data-credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data credits</h2>
+
+<p>Contains Ordnance Survey data © Crown copyright and database right 2015. Contains Royal Mail data © Royal Mail copyright and database right 2015. Contains National Statistics data © Crown copyright and database right 2015.</p>
+
+<h2>
+<a id="project-credits" class="anchor" href="#project-credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project credits</h2>
+
+<p>Thanks to Jim Cokill at Durham Wildlife Trust for allowing me to share this toolkit with  others.</p>
+
 <p>See my <a href="https://uk.linkedin.com/in/jonathanwinnspatial">LinkedIn page</a></p>
 
-<h3>
-<a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
-
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here <a href="https://guides.github.com/features/mastering-markdown/">using GitHub Flavored Markdown</a>, select a template crafted by a designer, and publish. After your page is generated, you can check out the new <code>gh-pages</code> branch locally. If you’re using GitHub Desktop, simply sync your repository and you’ll see the new branch.</p>
-
-<h3>
-<a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
-
-<p>We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
-
-<h3>
-<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating pages manually</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p><a href="http://www.durhamwt.com/">Durham Wildlife Trust</a></p>
 
 <h3>
 <a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
 
 <p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor’s GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
         </section>
 
         <footer>
@@ -74,7 +96,17 @@
           This page was generated by <a href="https://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
         </footer>
 
-        
+                  <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-72105544-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
       </div>
     </div>
   </body>
