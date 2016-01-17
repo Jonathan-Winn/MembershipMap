@@ -1,6 +1,6 @@
 # Python Toolbox used to create membership maps
 # Allows user selection of input membership location data, reserves input data and ouput maps types
-# Designed for use with ArcGIs 10.2.2 (Python 2.7)
+# Designed for use with ArcGIs 10.2.2 (Python 2.7.5)
 # Created by Jonathan Winn
 # See my LinkedIn page:    https://www.linkedin.com/in/jonathanwinnspatial
 
@@ -9,6 +9,8 @@ import os
 import sys
 from arcpy.sa import *
 import time
+import logging
+import datetime
 
 class Toolbox(object):
     def __init__(self):
@@ -41,7 +43,7 @@ class MapTool(object):
             datatype="DEFeatureClass",
             parameterType="Required",
             direction="Input")
-        p0.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'District_borough_unitary_region')
+        p0.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'District_borough_unitary_region')
 
         p1 = arcpy.Parameter(
            displayName="Select Study Area",
@@ -75,16 +77,16 @@ class MapTool(object):
             parameterType="Required",
             category = "Default data location",
             direction="Input")
-        p4.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'3 OutputData\Scratch.gdb')
+        p4.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'03OutputData\Scratch.gdb')
 
         p5 = arcpy.Parameter(
             displayName="CodePoint Postcodes",
             name="CodePoint",
-            datatype="DEFeatureClass",
+            datatype="DETable",
             parameterType="Required",
             category = "Default data inputs",
             direction="Input")
-        p5.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'CodePoint')
+        p5.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'CodePointTable')
 
         p6 = arcpy.Parameter(
            displayName="Set field in CodePoint with Postcodes",
@@ -102,7 +104,7 @@ class MapTool(object):
             datatype="DETable",
             parameterType="Required",
             direction="Input")
-        p7.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData', 'Memberships.csv')
+        p7.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData', 'Memberships.csv')
 
         p8 = arcpy.Parameter(
            displayName="Set field in memberships table with Postcodes",
@@ -120,7 +122,7 @@ class MapTool(object):
             parameterType="Required",
             category = "Default data location",
             direction="Input")
-        p9.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'3 OutputData\Outputs.gdb')
+        p9.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'03OutputData\Outputs.gdb')
 
         p10 = arcpy.Parameter(
             displayName="Use alternative Study Area boundary? (instead of boundary file shown above)",
@@ -136,7 +138,7 @@ class MapTool(object):
             datatype="DEFeatureClass",
             parameterType="Optional",
             direction="Input")
-        p11.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'Study1')
+        p11.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'Study1')
 
         p12 = arcpy.Parameter(
             displayName="Indicators",
@@ -145,7 +147,7 @@ class MapTool(object):
             parameterType="Required",
             category = "Default data location",
             direction="Input")
-        p12.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'3 OutputData\Indicators.gdb')
+        p12.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'03OutputData\Indicators.gdb')
 
         p13 = arcpy.Parameter(
             displayName="Include Reserve location points?",
@@ -163,7 +165,7 @@ class MapTool(object):
             parameterType="Optional",
             category = "Optional Reserve location data use",
             direction="Input")
-        p14.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData', 'Reserves.csv')
+        p14.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData', 'Reserves.csv')
 
         p15 = arcpy.Parameter(
             displayName="Census areas",
@@ -172,7 +174,7 @@ class MapTool(object):
             parameterType="Required",
             category = "Default data inputs",
             direction="Input")
-        p15.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'OA_2011_GB')
+        p15.value =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'OA_2011_GB')
 
         p16 = arcpy.Parameter(
             displayName="Create PDFs?",
@@ -292,16 +294,21 @@ class MapTool(object):
         PcntScrSDOut         = os.path.join(Indicators, "Pcnt_Zscr_SD_IndC")
         Census_lyr           = "Census_lyr"
         PopnOut              = os.path.join(Outputs,"Population")
-        DTM1                 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'DTM1000')
-        PDFloctn             = os.path.join(os.path.dirname(os.path.dirname(__file__)),'4 PDFs')
+        DTM1                 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'DTM1000')
+        PDFloctn             = os.path.join(os.path.dirname(os.path.dirname(__file__)),'04PDFs')
         Buffers_lyr          = "Buffers_lyr"
-        outpath              = os.path.join(os.path.dirname(os.path.dirname(__file__)),'3 OutputData')
-        lnr                  = os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'LNR_GB')
-        nnr                  = os.path.join(os.path.dirname(os.path.dirname(__file__)),'2 InputData\Inputs.gdb', 'NNR_GB')
+        outpath              = os.path.join(os.path.dirname(os.path.dirname(__file__)),'03OutputData')
+        lnr                  = os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'LNR_GB')
+        nnr                  = os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb', 'NNR_GB')
+        InputsGDB            = os.path.join(os.path.dirname(os.path.dirname(__file__)),'02InputData\Inputs.gdb')
+        Rlo_lyr              = os.path.join(os.path.dirname(os.path.dirname(__file__)),'10LayerFiles', 'M0loc.lyr')
+        Rla_lyr              = os.path.join(os.path.dirname(os.path.dirname(__file__)),'10LayerFiles', 'M0land.lyr')
+        Mloc_lyr             = os.path.join(os.path.dirname(os.path.dirname(__file__)),'10LayerFiles', 'Mloc.lyr')
+        Mland_lyr            = os.path.join(os.path.dirname(os.path.dirname(__file__)),'10LayerFiles', 'Mland.lyr')
 
         # set full text message tracking (true for testing, false for use by user)
 
-        fulltext             = "true"
+        fulltext             = "false"
 
         # set overwrite and scratch workspace
 
@@ -313,11 +320,77 @@ class MapTool(object):
         spatial_ref = arcpy.Describe(Census).spatialReference
         arcpy.env.outputCoordinateSystem = spatial_ref
         start_time_t0 = time.time()
+        d = datetime.datetime.now()
+
+
+        # set up logging
+
+        dtstamp4 = datetime.datetime.now().strftime('MessageLog_%d_%m_%Y__hr%H.log')
+        msglog2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'zlog', str(dtstamp4))
+        # remove datefmt to include miliseconds
+        logformat = '%(lineno)s      %(asctime)s     %(levelname)s  : %(message)s'
+        datetxt =' %a  %Y-%m-%d   %H:%M:%S'
+        logging.basicConfig(filename=msglog2,filemode="w", level=logging.DEBUG, format = logformat, datefmt = datetxt)
+        logID = 1
 
         # begin messages for user
 
         arcpy.AddMessage(" ")
+        messages.addMessage("    Tool will take between 30 mins - 1hr to complete")
         messages.addMessage("    Preparing data for analysis")
+
+        # begin log
+
+        logging.info("Log: " + str(d))
+        logging.info("Start analysis: " + str(start_time_t0))
+
+        arcpy.env.workspace = InputsGDB
+
+        flist = arcpy.ListFiles("*.cdf")
+        flen = len(flist)
+        if flen > 0:
+            messages.addMessage("    Uncompressing Input data geodatabase (first time toolbox is run: this step can be slow)")
+            logging.info("Inputs were compressed, then uncompressed")
+            arcpy.UncompressFileGeodatabaseData_management(InputsGDB)
+        else:
+            messages.addMessage("    Using uncompressed Input data geodatabase")
+            logging.info("Inputs were already uncompressed")
+
+        arcpy.env.workspace = Scratch
+
+        # delete key datasets from any previous analysis runs
+
+        delList = ["*NR*", "*Top*"]
+        for dl in delList:
+                allDX = arcpy.ListRasters(dl)
+                if allDX:
+                  logging.info("Rasters deleted:  ")
+                  for rasterDX in allDX:
+                         try:
+                          arcpy.Delete_management(rasterDX)
+                          logging.info("Rasters deleted:  " + str(rasterDX) )
+                         except:
+                          messages.addMessage("Can't delete " + str(rasterDX))
+
+                allDX3 = arcpy.ListTables(dl)
+                if allDX3:
+                   logging.info("Tables deleted:  " )
+                   for TableDX in allDX3:
+                         try:
+                          arcpy.Delete_management(TableDX)
+                          logging.info("Tables deleted:  " + str(TableDX))
+                         except:
+                          messages.addMessage("Can't delete " + str(TableDX))
+
+                allDX4 = arcpy.ListFeatureClasses(dl)
+                if allDX3:
+                  logging.info("Feature class deleted:  " )
+                  for FeatDX in allDX4:
+                         try:
+                          arcpy.Delete_management(FeatDX)
+                          logging.info("Feature classes deleted:  " + str(TableDX))
+                         except:
+                          messages.addMessage("Can't delete " + str(FeatDX))
 
         Tresult = arcpy.GetCount_management(MembersT)
         Tcount = int(Tresult.getOutput(0))
@@ -325,16 +398,18 @@ class MapTool(object):
 
         messages.addMessage("    Memberships input data has  " + str(Tcount) + "  records")
 
-
         arcpy.MakeFeatureLayer_management(SAboundary, SA_lyr, SAreaSQL)
         arcpy.CopyFeatures_management(SA_lyr, "StudyArea_MX")
 
         if UserStudy == 'true':
 
           arcpy.CopyFeatures_management(AltArea, "StudyArea_MX")
+          logging.info("Analysis run with user supplied Study Area file")
 
         else:
-          arcpy.AddMessage(" ")
+          logging.info("Analysis run with GUI selected Study Area" )
+
+        messages.addMessage("    Applying " + str(Buffer) + " m buffer to Study Area")
 
         BfrInput = "StudyArea_MX"
         BfrOut = "SA_buffer_MX"
@@ -343,13 +418,23 @@ class MapTool(object):
         endType = "ROUND"
         dissolveType = "NONE"
         dissolveField = ""
-
-        messages.addMessage("    Applying " + str(Buffer) + " m buffer to Study Area")
-
         arcpy.Buffer_analysis(BfrInput, BfrOut, distance, sideType, endType, dissolveType, dissolveField)
 
         arcpy.CopyRows_management(MembersT, "MembersImport_MX")
         arcpy.AddIndex_management("MembersImport_MX", PostF, "PIndex", "UNIQUE", "ASCENDING")
+
+        logging.info("Buffer created (SA_buffer_MX)")
+
+        BfrInput = "SA_buffer_MX"
+        BfrOut = "SA5k_MX"
+        distance = 5000
+        sideType = "FULL"
+        endType = "ROUND"
+        dissolveType = "NONE"
+        dissolveField = ""
+        arcpy.Buffer_analysis(BfrInput, BfrOut, distance, sideType, endType, dissolveType, dissolveField)
+
+        logging.info("Full extent buffer created")
 
         indexes = arcpy.ListIndexes(CodePoint)
         ind_exist =  []
@@ -358,39 +443,41 @@ class MapTool(object):
                     ind_exist.append(index.name)
 
         if "PCInd2" in ind_exist:
-            messages.addMessage("    CodePoint index exists  " + str(ind_exist))
+            logging.info("CodePoint index exists  " + str(ind_exist))
         else:
+            messages.addMessage("    Adding index to CodePoint: this step can be slow")
             arcpy.AddIndex_management(CodePoint, PostcodeM, "PCInd2", "UNIQUE", "ASCENDING")
-            messages.addMessage("    Adding index to CodePoint")
 
-        if fulltext == 'true':
-            messages.addMessage("    Copy data (Members, CopdePoint) to in_memory")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Copy data (Members, CopdePoint) to in_memory" )
 
-        arcpy.MakeFeatureLayer_management(CodePoint, Code_lyr)
-        arcpy.CopyFeatures_management(Code_lyr, "in_memory\AllCodes_MX")
+        in_Table = CodePoint
+        x_coords = "easting"
+        y_coords = "northing"
+        z_coords = ""
+        out_Layer = "PCodes_view"
+
+        # Set the spatial reference
+        spRef = spatial_ref
+
+        # Make the XY event layer...
+        arcpy.MakeXYEventLayer_management(in_Table, x_coords, y_coords, out_Layer, spRef, z_coords)
+        arcpy.CopyFeatures_management(out_Layer,  "in_memory\AllCodes_MX")
+        arcpy.MakeFeatureLayer_management(out_Layer, Code_lyr)
+
         arcpy.CopyRows_management("MembersImport_MX", "in_memory\MembersCopy_MX")
+        arcpy.CopyRows_management(CodePoint, "in_memory\TableAllCodes")
 
-        intabepr = "in_memory\AllCodes_MX"
+        intabepr = "in_memory\TableAllCodes"
         fieldName1 = PostcodeM
         fieldPrecision = ""
         fieldAlias = ""
         fieldLength = ""
         expression1 = """!%s!.replace(" ", "")""" % (PostcodeM)
 
-        if fulltext == 'true':
-            messages.addMessage("    Update CodePoint (postcode field)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Update CodePoint (postcode field)")
 
-        arcpy.AddField_management(intabepr, fieldName1, "TEXT", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+#        arcpy.AddField_management(intabepr, fieldName1, "TEXT", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+
         arcpy.CalculateField_management(intabepr, fieldName1, expression1 , "PYTHON_9.3")
 
         intabepr = "in_memory\MembersCopy_MX"
@@ -401,26 +488,22 @@ class MapTool(object):
         expression1 = """!%s!.replace(" ", "")""" %(PostF)
         expression2 = "!%s!.upper()" %(PostF)
 
-        if fulltext == 'true':
-            messages.addMessage("    Update Members data (postcode field)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Update Members data (postcode field)")
 
-        arcpy.AddField_management(intabepr, fieldName1, "TEXT", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+#        arcpy.AddField_management(intabepr, fieldName1, "TEXT", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+
         arcpy.CalculateField_management(intabepr, fieldName1, expression1 , "PYTHON_9.3")
         arcpy.CalculateField_management(intabepr, fieldName1, expression2 , "PYTHON_9.3")
 
         messages.addMessage("    Joining location grid ref to membership postcodes")
+        logging.info("Joining location grid ref to membership postcodes")
 
         start_time_t1 = time.time()
 
         inFeatures = "in_memory\MembersCopy_MX"
         joinFieldIn = PostF
         joinFieldJT = PostcodeM
-        joinTable = "in_memory\AllCodes_MX"
+        joinTable = "in_memory\TableAllCodes"
         fieldList = ["easting", "northing"]
 
         arcpy.JoinField_management (inFeatures, joinFieldIn, joinTable, joinFieldJT, fieldList)
@@ -432,10 +515,11 @@ class MapTool(object):
         timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
 
         messages.addMessage("    Join succeeded at: " + str(timetaken))
+        logging.info("Join succeeded at: " + str(timetaken))
 
         arcpy.MakeTableView_management(inFeatures, "m_view")
 
-        messages.addMessage("    Save data membership points")
+        logging.info("Save data membership points")
 
         in_Table = "m_view"
         x_coords = "easting"
@@ -451,13 +535,7 @@ class MapTool(object):
         arcpy.SelectLayerByAttribute_management (out_Layer, "NEW_SELECTION", ' "easting" >= 0 ')
         arcpy.CopyFeatures_management(out_Layer, "AllMembersPoints")
 
-        if fulltext == 'true':
-            messages.addMessage("    Select unmatched membership records and expor to xls")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Select unmatched membership records and export to xls" )
 
         arcpy.SelectLayerByAttribute_management (out_Layer, "SWITCH_SELECTION")
         arcpy.CopyFeatures_management(out_Layer, "MembershipsNotMatched")
@@ -466,13 +544,7 @@ class MapTool(object):
         out_xls = os.path.join(outpath,"MembershipsNotMatched.xls")
         arcpy.TableToExcel_conversion(in_table, out_xls)
 
-        if fulltext == 'true':
-            messages.addMessage("    Copy membership point to scratch and copy to in_memory")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Copy membership point to scratch and copy to in_memory" )
 
         arcpy.SelectLayerByLocation_management (out_Layer, "INTERSECT", "SA_buffer_MX")
         arcpy.CopyFeatures_management(out_Layer, "MembersPoints")
@@ -488,8 +560,9 @@ class MapTool(object):
 
         arcpy.Delete_management("in_memory\AllCodes_MX")
         arcpy.Delete_management ("in_memory\MembersCopy_MX")
+        arcpy.Delete_management ("in_memory\TableAllcodes")
 
-        messages.addMessage("    Selecting Post Codes within Study Area Buffer")
+        logging.info("Selecting Post Codes within Study Area Buffer")
 
         messages.addMessage("    There are   " + str(Tc) + "  Post Codes in the Study Area Buffer")
 
@@ -518,14 +591,9 @@ class MapTool(object):
 
         if TnotInt > 0:
           messages.addMessage("    " + str(pc04) + "  % of the " + str(Tcount) + "   records (" + str(TnotInt) + " records) do not have valid PostCodes. Records have been exported in Excel format for checking")
+          messages.addMessage("    Unmatched membership records exported to " + str(out_xls))
 
-        if fulltext == 'true':
-            messages.addMessage("    Selecting Census Areas (OA, DZ) within Study Area Buffer")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Selecting Census Areas (OA, DZ) within Study Area Buffer")
 
         arcpy.MakeFeatureLayer_management(Census, Census_lyr)
         arcpy.SelectLayerByLocation_management (Census_lyr, "INTERSECT", "SA_buffer_MX")
@@ -538,7 +606,7 @@ class MapTool(object):
 
         arcpy.CopyFeatures_management("MembersPoints", "in_memory\Loc_MX")
 
-        messages.addMessage("    Joining Census Areas (OA, DZ) data to local Post Codes points")
+        logging.info("Joining Census Areas (OA, DZ) data to local Post Codes points" )
 
         target_features = "in_memory\Loc_MX"
         join_features = "in_memory\LocCensus_MX"
@@ -555,13 +623,7 @@ class MapTool(object):
 
         # calculate how many postcodes points per Census Area
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate number of Post Code points (Nm1) per Census Area (OAC) (members points only)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info(" Calculate number of Post Code points (Nm1) per Census Area (OAC) (members points only)")
 
         inTable = "LocDataP_MX"
         outStatsTable = "stats_out_MX"
@@ -572,13 +634,7 @@ class MapTool(object):
 
         # Join the data field back to the point data
 
-        if fulltext == 'true':
-            messages.addMessage("    Join field  - sum of postcodes  (members points only)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Join field  - sum of postcodes  (members points only)")
 
         arcpy.CopyFeatures_management("LocDataP_MX", "in_memory\LocD")
         inFeatures = "in_memory\LocD"
@@ -589,13 +645,10 @@ class MapTool(object):
 
         messages.addMessage("    Calculate  local population sizes")
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate estimated average population per Post Code point (cenus popn / no. of post code points)  (members points only)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Calculate estimated average population per Post Code point (cenus popn / no. of post code points)  (members points only)")
+
+
+
 
         # add and calculate popn fields
 
@@ -613,13 +666,7 @@ class MapTool(object):
 
         # calc to find total local population size grid
 
-        if fulltext == 'true':
-            messages.addMessage("    Spatial join of census polygon data to membership points")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Spatial join of census polygon data to membership points")
 
         target_features = "in_memory\LocCodes_MX"
         join_features = "in_memory\LocCensus_MX"
@@ -628,13 +675,7 @@ class MapTool(object):
 
         # calculate how many postcodes points per Census Area
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate number of Post Code points (Nm1) per Census Area (OAC) (all points)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Calculate number of Post Code points (Nm1) per Census Area (OAC) (all points)")
 
         inTable = "LocCodePoints_plus_MX"
         outStatsTable = "stats_out_MX"
@@ -644,13 +685,7 @@ class MapTool(object):
 
         # Join the data field back to the point data
 
-        if fulltext == 'true':
-            messages.addMessage("    Join field  - sum of postcodes  (all points)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Join field  - sum of postcodes  (all points)")
 
         arcpy.CopyFeatures_management("LocCodePoints_plus_MX", "in_memory\CodePAll")
         inFeatures = "in_memory\CodePAll"
@@ -661,13 +696,7 @@ class MapTool(object):
 
         # add and calculate popn fields
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate estimated average population per Post Code point (cenus popn / no. of post code points)  (all points)")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info("Calculate estimated average population per Post Code point (cenus popn / no. of post code points)  (all points)")
 
         intabepr = "in_memory\CodePAll"
         fieldName1 = "PopnX"
@@ -680,7 +709,12 @@ class MapTool(object):
 
         arcpy.CopyFeatures_management("in_memory\CodePAll", PCodeOut)
 
-        messages.addMessage("    Creating  100  m grid map of population size")
+        logging.info( "Creating  100  m grid map of population size")
+
+        # set extent for rasters
+
+        ext2                 = arcpy.Describe("SA5k_MX").extent
+        arcpy.env.extent     = ext2
 
         inFeatures = PCodeOut
         valField = "PopnX"
@@ -690,7 +724,7 @@ class MapTool(object):
         cellSizePop = 100
         arcpy.PointToRaster_conversion(inFeatures, valField, outRaster, assignmentType, priorityField, cellSizePop)
 
-        messages.addMessage("    Creating  100  m grid map of members")
+        logging.info( "Creating  100  m  grid map of members")
 
         inFeatures = MembersOut
         valField = "Members"
@@ -699,36 +733,6 @@ class MapTool(object):
         priorityField = ""
         cellSize100 = 100
         arcpy.PointToRaster_conversion(inFeatures, valField, outRaster, assignmentType, priorityField, cellSize100)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -753,13 +757,7 @@ class MapTool(object):
         cellSize = Grids
         arcpy.PointToRaster_conversion(inFeatures, valField, outRaster, assignmentType, priorityField, cellSize)
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate SD grids, Z scores of memberships")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info( "Calculate SD grids, Z scores of memberships")
 
         MaxD            = arcpy.GetRasterProperties_management(GridMships,property_type="MAXIMUM")
 
@@ -832,13 +830,7 @@ class MapTool(object):
         cellSize = Grids
         arcpy.PointToRaster_conversion(inFeatures, valField, outRaster, assignmentType, priorityField, cellSize)
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate SD grids, Z scores of members")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info( "Calculate SD grids, Z scores of members")
 
         MMaxD            = arcpy.GetRasterProperties_management(GridMembers,property_type="MAXIMUM")
 
@@ -910,13 +902,8 @@ class MapTool(object):
         cellSize = Grids
         arcpy.PointToRaster_conversion(inFeatures, valField, outRaster, assignmentType, priorityField, cellSize)
 
-        if fulltext == 'true':
-            messages.addMessage("    Calculate SD grids, Z scores of percent population membership")
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
+        logging.info( "Calculate SD grids, Z scores of percent population membershipship")
+
 
         VarP1              = Divide(GridMembers, PopnOut)
         VarP2              = Times (VarP1, 100)
@@ -1021,12 +1008,20 @@ class MapTool(object):
 
             # Make the XY event layer...
             arcpy.MakeXYEventLayer_management(in_Table, x_coords, y_coords, out_Layer, spRef, z_coords)
-            arcpy.CopyFeatures_management(out_Layer, "ReservesPoints")
-            TR = arcpy.GetCount_management("ReservesPoints")
+            arcpy.CopyFeatures_management(out_Layer, "AllReservesPoints")
+            TR = arcpy.GetCount_management(ReservesT)
             TRt = int(TR.getOutput(0))
 
-            messages.addMessage("    There are  " + str(TRt) + "  reserves in the Study Area Buffer")
+            messages.addMessage("    There are  " + str(TRt) + "  reserves in the reserves input data")
 
+            arcpy.SelectLayerByLocation_management (out_Layer, "INTERSECT", "SA_buffer_MX")
+            arcpy.CopyFeatures_management(out_Layer, "ReservesPoints")
+            TRss = arcpy.GetCount_management(out_Layer)
+            TRsst = int(TRss.getOutput(0))
+
+            messages.addMessage("    There are  " + str(TRsst) + "  reserves in the Study Area buffer")
+
+            arcpy.SelectLayerByAttribute_management(out_Layer, "CLEAR_SELECTION")
 
 
             arcpy.AddMessage("    Creating travel zone buffers around reserves")
@@ -1037,13 +1032,7 @@ class MapTool(object):
             bufferUnit = "meters"
             arcpy.MultipleRingBuffer_analysis(inFeatures, outFeatureClass, distances, bufferUnit, "", "ALL")
 
-            if fulltext == 'true':
-                messages.addMessage("    Clip buffers to SA buffer, convert to raster")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+            logging.info( "Clip buffers to SA buffer, convert to raster")
 
             in_features = "multibuffer1"
             clip_features = "SA_buffer_MX"
@@ -1066,13 +1055,7 @@ class MapTool(object):
             field = "Zone"
             arcpy.FeatureToRaster_conversion(inFeature, field, outRaster, cellSize)
 
-            if fulltext == 'true':
-                messages.addMessage("    Zonal stats - popn per buffer, members per buffer and total popn for study area")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+            logging.info( "Zonal stats - popn per buffer, members per buffer and total popn for study area")
 
             inZoneData = "RBuffers"
             zoneField = "Value"
@@ -1111,95 +1094,80 @@ class MapTool(object):
             arcpy.SelectLayerByLocation_management ("lnr_lyr", "INTERSECT", "SA_buffer_MX")
             arcpy.CopyFeatures_management("lnr_lyr", "LocLNR_MX")
 
-            if fulltext == 'true':
-                messages.addMessage("    LNR - buffers")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+            TLNR = arcpy.GetCount_management("LocLNR_MX")
+            TLNRt = int(TLNR.getOutput(0))
 
-            inFeatures = "LocLNR_MX"
-            outFeatureClass = "lnrbuffer_MX"
-            distances = [Buffer1, Buffer2, Buffer3]
-            bufferUnit = "meters"
-            arcpy.MultipleRingBuffer_analysis(inFeatures, outFeatureClass, distances, bufferUnit, "", "ALL")
+            if TLNRt > 0:
 
-            if fulltext == 'true':
-                messages.addMessage("    LNR - clip, convert to rasters")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+                messages.addMessage("    There are  " + str(TLNRt) + "  LNRs in the Study Area buffer")
 
-            in_features = "lnrbuffer_MX"
-            clip_features = "SA_buffer_MX"
-            out_feature_class = "LNR_Buffers"
-            xy_tolerance = ""
-            arcpy.Clip_analysis(in_features, clip_features, out_feature_class, xy_tolerance)
+                inFeatures = "LocLNR_MX"
+                outFeatureClass = "lnrbuffer_MX"
+                distances = [Buffer1, Buffer2, Buffer3]
+                bufferUnit = "meters"
+                arcpy.MultipleRingBuffer_analysis(inFeatures, outFeatureClass, distances, bufferUnit, "", "ALL")
 
-            intabepr = "LNR_Buffers"
-            fieldName1 = "Zone"
-            fieldPrecision = ""
-            fieldAlias = ""
-            fieldLength = ""
-            expressionP = "!distance!"
-            arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
-            arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+                logging.info( "LNR - clip, convert to rasters")
 
-            inFeature = "LNR_Buffers"
-            outRaster = "LNR_rast"
-            cellSize = 100
-            field = "Zone"
-            arcpy.FeatureToRaster_conversion(inFeature, field, outRaster, cellSize)
+                in_features = "lnrbuffer_MX"
+                clip_features = "SA_buffer_MX"
+                out_feature_class = "LNR_Buffers"
+                xy_tolerance = ""
+                arcpy.Clip_analysis(in_features, clip_features, out_feature_class, xy_tolerance)
 
-            if fulltext == 'true':
-                messages.addMessage("    LNR - Zonal stats and field calcs - popn")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+                intabepr = "LNR_Buffers"
+                fieldName1 = "Zone"
+                fieldPrecision = ""
+                fieldAlias = ""
+                fieldLength = ""
+                expressionP = "!distance!"
+                arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+                arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
 
-            inZoneData = "LNR_rast"
-            zoneField = "Value"
-            inValueRaster = Popn100m
-            outTable = "LNRPopn"
-            outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
+                inFeature = "LNR_Buffers"
+                outRaster = "LNR_rast"
+                cellSize = 100
+                field = "Zone"
+                arcpy.FeatureToRaster_conversion(inFeature, field, outRaster, cellSize)
 
-            intabepr = "LNRPopn"
-            fieldName1 = "Percent"
-            fieldPrecision = ""
-            fieldAlias = ""
-            fieldLength = ""
-            expressionP = "(!SUM!/%d)*100" %(totpop)
-            arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
-            arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+                logging.info( "LNR - Zonal stats and field calcs - popn")
 
-            if fulltext == 'true':
-                messages.addMessage("    LNR - Zonal stats and field calcs - members")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+                inZoneData = "LNR_rast"
+                zoneField = "Value"
+                inValueRaster = Popn100m
+                outTable = "LNRPopn"
+                outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
 
-            inZoneData = "LNR_rast"
-            zoneField = "Value"
-            inValueRaster = Mbrs100m
-            outTable = "LNRmem"
-            outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
+                intabepr = "LNRPopn"
+                fieldName1 = "Percent"
+                fieldPrecision = ""
+                fieldAlias = ""
+                fieldLength = ""
+                expressionP = "(!SUM!/%d)*100" %(totpop)
+                arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+                arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
 
-            intabepr = "LNRmem"
-            fieldName1 = "Percent"
-            fieldPrecision = ""
-            fieldAlias = ""
-            fieldLength = ""
-            expressionP = "(!SUM!/%d)*100" %(totpop)
-            arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
-            arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+                logging.info("LNR - Zonal stats and field calcs - members")
 
+                inZoneData = "LNR_rast"
+                zoneField = "Value"
+                inValueRaster = Mbrs100m
+                outTable = "LNRmem"
+                outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
+
+                intabepr = "LNRmem"
+                fieldName1 = "Percent"
+                fieldPrecision = ""
+                fieldAlias = ""
+                fieldLength = ""
+                expressionP = "(!SUM!/%d)*100" %(totpop)
+                arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+                arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+
+            if TLNRt == 0:
+                arcpy.AddWarning("    There are no LNRs in the Study Area buffer")
+                arcpy.AddWarning("    Ideally re-run the analysis for a larger Study Area or using a larger buffer zone")
+                logging.info( "There are no LNRs in the Study Area buffer")
 
             # Create NNR_GB distance zones and analysis - for use with graph insert
 
@@ -1207,121 +1175,88 @@ class MapTool(object):
             arcpy.SelectLayerByLocation_management ("nnr_lyr", "INTERSECT", "SA_buffer_MX")
             arcpy.CopyFeatures_management("nnr_lyr", "LocNNR_MX")
 
-            if fulltext == 'true':
-                messages.addMessage("    NNR - buffers")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+            TNNR = arcpy.GetCount_management("LocNNR_MX")
+            TNNRt = int(TNNR.getOutput(0))
 
-            inFeatures = "LocNNR_MX"
-            outFeatureClass = "nnrbuffer_MX"
-            distances = [Buffer1, Buffer2, Buffer3]
-            bufferUnit = "meters"
-            arcpy.MultipleRingBuffer_analysis(inFeatures, outFeatureClass, distances, bufferUnit, "", "ALL")
+            if TNNRt > 0:
 
-            if fulltext == 'true':
-                messages.addMessage("    LNR - clip, convert to rasters")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+                messages.addMessage("    There are  " + str(TNNRt) + "  NNRs in the Study Area buffer")
 
-            in_features = "nnrbuffer_MX"
-            clip_features = "SA_buffer_MX"
-            out_feature_class = "NNR_Buffers"
-            xy_tolerance = ""
-            arcpy.Clip_analysis(in_features, clip_features, out_feature_class, xy_tolerance)
+                inFeatures = "LocNNR_MX"
+                outFeatureClass = "nnrbuffer_MX"
+                distances = [Buffer1, Buffer2, Buffer3]
+                bufferUnit = "meters"
+                arcpy.MultipleRingBuffer_analysis(inFeatures, outFeatureClass, distances, bufferUnit, "", "ALL")
 
-            intabepr = "NNR_Buffers"
-            fieldName1 = "Zone"
-            fieldPrecision = ""
-            fieldAlias = ""
-            fieldLength = ""
-            expressionP = "!distance!"
-            arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
-            arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+                logging.info( "NNR - clip, convert to rasters")
 
-            inFeature = "NNR_Buffers"
-            outRaster = "NNR_rast"
-            cellSize = 100
-            field = "Zone"
-            arcpy.FeatureToRaster_conversion(inFeature, field, outRaster, cellSize)
+                in_features = "nnrbuffer_MX"
+                clip_features = "SA_buffer_MX"
+                out_feature_class = "NNR_Buffers"
+                xy_tolerance = ""
+                arcpy.Clip_analysis(in_features, clip_features, out_feature_class, xy_tolerance)
 
-            if fulltext == 'true':
-                messages.addMessage("    NNR - Zonal stats and field calcs - popn")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+                intabepr = "NNR_Buffers"
+                fieldName1 = "Zone"
+                fieldPrecision = ""
+                fieldAlias = ""
+                fieldLength = ""
+                expressionP = "!distance!"
+                arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+                arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
 
-            inZoneData = "NNR_rast"
-            zoneField = "Value"
-            inValueRaster = Popn100m
-            outTable = "NNRPopn"
-            outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
+                inFeature = "NNR_Buffers"
+                outRaster = "NNR_rast"
+                cellSize = 100
+                field = "Zone"
+                arcpy.FeatureToRaster_conversion(inFeature, field, outRaster, cellSize)
 
-            intabepr = "NNRPopn"
-            fieldName1 = "Percent"
-            fieldPrecision = ""
-            fieldAlias = ""
-            fieldLength = ""
-            expressionP = "(!SUM!/%d)*100" %(totpop)
-            arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
-            arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+                logging.info( "NNR - Zonal stats and field calcs - popn")
 
-            if fulltext == 'true':
-                messages.addMessage("    NNR - Zonal stats and field calcs - members")
-                elapsed_time_seconds_tool1 = time.time() - start_time_t0
-                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-                ht1, mt1 = divmod(mt1, 60)
-                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-                messages.addMessage("        Progress time: " + str(timetaken))
+                inZoneData = "NNR_rast"
+                zoneField = "Value"
+                inValueRaster = Popn100m
+                outTable = "NNRPopn"
+                outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
 
-            inZoneData = "NNR_rast"
-            zoneField = "Value"
-            inValueRaster = Mbrs100m
-            outTable = "NNRmem"
-            outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
+                intabepr = "NNRPopn"
+                fieldName1 = "Percent"
+                fieldPrecision = ""
+                fieldAlias = ""
+                fieldLength = ""
+                expressionP = "(!SUM!/%d)*100" %(totpop)
+                arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+                arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
 
-            intabepr = "NNRmem"
-            fieldName1 = "Percent"
-            fieldPrecision = ""
-            fieldAlias = ""
-            fieldLength = ""
-            expressionP = "(!SUM!/%d)*100" %(totpop)
-            arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
-            arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
+                logging.info( "NNR - Zonal stats and field calcs - members")
 
+                inZoneData = "NNR_rast"
+                zoneField = "Value"
+                inValueRaster = Mbrs100m
+                outTable = "NNRmem"
+                outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, inValueRaster, outTable, "DATA", "SUM")
 
+                intabepr = "NNRmem"
+                fieldName1 = "Percent"
+                fieldPrecision = ""
+                fieldAlias = ""
+                fieldLength = ""
+                expressionP = "(!SUM!/%d)*100" %(totpop)
+                arcpy.AddField_management(intabepr, fieldName1, "DOUBLE", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+                arcpy.CalculateField_management(intabepr, fieldName1, expressionP, "PYTHON_9.3")
 
+            if TNNRt == 0:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+                arcpy.AddWarning("    There are no NNRs in the Study Area buffer")
+                arcpy.AddWarning("    Ideally re-run the analysis for a larger Study Area or using a larger buffer zone")
 
 
         if Reserves == 'true':
 
-
-
-
             # Set up reserve distance analysis
 
             messages.addMessage("    Using travel distance zones: " + Buffer1 + "m, " + Buffer2 + "m, " + Buffer3 + "m")
+            logging.info( "Using travel distance zones: " + Buffer1 + "m, " + Buffer2 + "m, " + Buffer3 + "m")
 
             # Set local variables - population
 
@@ -1357,7 +1292,7 @@ class MapTool(object):
 
             # Execute PointStatistics - members
 
-            arcpy.AddMessage("    Calculating number of members in travel distance zones")
+            logging.info( "Calculating number of members in travel distance zones")
 
             if fulltext == 'true':
                 elapsed_time_seconds_tool1 = time.time() - start_time_t0
@@ -1375,7 +1310,7 @@ class MapTool(object):
             outPointStatistics = PointStatistics(inPointFeatures, field, cellSize,  neighborhood2, "SUM")
             outPointStatistics.save("Mem100mLocal")
 
-            arcpy.AddMessage("    Extracting data to ReservesPoints")
+            logging.info("Extracting data to ReservesPoints")
 
             if fulltext == 'true':
                 elapsed_time_seconds_tool1 = time.time() - start_time_t0
@@ -1385,10 +1320,27 @@ class MapTool(object):
                 messages.addMessage("        Progress time: " + str(timetaken))
 
             inPointFeatures = "ReservesPoints"
-            inRasterList = [["Popn100mLocal", "PopnLocal"], ["Popn100mLandscape", "PopnLandscape"] , ["Popn100mCounty", "PopnCounty"], ["Mem100mLocal", "MbsLocal"], ["Mem100mLandscape", "MbsLandscape"] , ["Mem100mCounty", "MbsCounty"]]
+            inRasterList = [["Popn100mLocal", "PopnLocal"], ["Popn100mLandscape", "PopnLandscape"] , ["Popn100mCounty", "PopnCounty"], ["Mem100mLocal", "MbsLo1"], ["Mem100mLandscape", "MbsLa2"] , ["Mem100mCounty", "MbsCo3"]]
             ExtractMultiValuesToPoints(inPointFeatures, inRasterList, "NONE")
 
-            arcpy.AddMessage("    Exporting reserves analysis data in Excel format to " + str(out_xls) )
+            # this step required due to test issue T15 (resolved: landscape size)
+
+            intabepr = "ReservesPoints"
+            fieldName1 = "MbsLocal"
+            fieldName2 = "MbsLandscape"
+            fieldName3 = "MbsCounty"
+            fieldPrecision = ""
+            fieldAlias = ""
+            fieldLength = ""
+            expressionx1 = "!MbsLo1!"
+            expressionx2 = "!MbsLa2!"
+            expressionx3 = "!MbsCo3!"
+            arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.CalculateField_management(intabepr, fieldName1, expressionx1, "PYTHON_9.3")
+            arcpy.AddField_management(intabepr, fieldName2, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.CalculateField_management(intabepr, fieldName2, expressionx2, "PYTHON_9.3")
+            arcpy.AddField_management(intabepr, fieldName3, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.CalculateField_management(intabepr, fieldName3, expressionx3, "PYTHON_9.3")
 
             inFeatures = "ReservesPoints"
             arcpy.MakeTableView_management(inFeatures, "table_view")
@@ -1396,9 +1348,11 @@ class MapTool(object):
             out_xls = os.path.join(outpath,"ReservesPopulations.xls")
             arcpy.TableToExcel_conversion(in_table, out_xls)
 
+            arcpy.AddMessage("    Exporting reserves analysis data in Excel format to " + str(out_xls) )
+
             # make seperate data tables for each buffer zone and only show top ranked reserves
 
-            arcpy.AddMessage("    Saving data tables sorted by nearby population size")
+            logging.info("Saving data tables sorted by nearby population size")
 
             if fulltext == 'true':
                 elapsed_time_seconds_tool1 = time.time() - start_time_t0
@@ -1406,6 +1360,7 @@ class MapTool(object):
                 ht1, mt1 = divmod(mt1, 60)
                 timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
                 messages.addMessage("        Progress time: " + str(timetaken))
+
 
             arcpy.Sort_management("ReservesPoints", "LocalReserves", [["PopnLocal", "DESCENDING"]])
             in_features = "LocalReserves"
@@ -1421,6 +1376,13 @@ class MapTool(object):
                     if not field.name in exclude:
                         fieldNameList.append(field.name)
             arcpy.DeleteField_management("TopTLocalReserves", fieldNameList)
+
+            if fulltext == 'true':
+                elapsed_time_seconds_tool1 = time.time() - start_time_t0
+                mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
+                ht1, mt1 = divmod(mt1, 60)
+                timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
+                messages.addMessage("        Progress time: " + str(timetaken))
 
 
             arcpy.Sort_management("ReservesPoints", "LandscapeReserves", [["PopnLandscape", "DESCENDING"]])
@@ -1457,7 +1419,7 @@ class MapTool(object):
 
             # repeat, based on no. of members ..........
 
-            arcpy.AddMessage("    Saving data tables sorted by nearby number of members")
+            logging.info("Saving data tables sorted by nearby number of members")
 
             if fulltext == 'true':
                 elapsed_time_seconds_tool1 = time.time() - start_time_t0
@@ -1516,27 +1478,10 @@ class MapTool(object):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
         arcpy.AddMessage("    Updating ArcMap extents, text, and data tables")
+        logging.info ("Updating ArcMap extents, text, and data tables")
 
-        if fulltext == 'true':
-            elapsed_time_seconds_tool1 = time.time() - start_time_t0
-            mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
-            ht1, mt1 = divmod(mt1, 60)
-            timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
-            messages.addMessage("        Progress time: " + str(timetaken))
-
-        map_file1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'6 Templates', 'T1Type.mxd')
+        map_file1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'06Templates', 'T1Type.mxd')
         mxd1 = arcpy.mapping.MapDocument(map_file1)
         df = arcpy.mapping.ListDataFrames(mxd1, "Memberships")[0]
         slyr = arcpy.mapping.ListLayers(mxd1, "SA_buffer", df)[0]
@@ -1544,25 +1489,16 @@ class MapTool(object):
         df.extent = slyrextent
         mxd1.save()
 
-        # Loop through each text element in the map document
         for textElement in arcpy.mapping.ListLayoutElements(mxd1, "TEXT_ELEMENT"):
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Text1":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ("Memberships = " + str(Mcount) + " records" )
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Text0":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = (str(Tcount) + " records" )
+        mxd1.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '1TypeofMembership.mxd'))
 
-        mxd1.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '1 Type of membership.mxd'))
+        logging.info ("ArcMap 01 updated")
 
-
-        map_file2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'6 Templates', 'T2MembershipDensity.mxd')
+        map_file2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'06Templates', 'T2MembershipDensity.mxd')
         mxd2 = arcpy.mapping.MapDocument(map_file2)
         df = arcpy.mapping.ListDataFrames(mxd2, "Memberships")[0]
         slyr = arcpy.mapping.ListLayers(mxd2, "SA_buffer", df)[0]
@@ -1570,31 +1506,18 @@ class MapTool(object):
         df.extent = slyrextent
         mxd2.save()
 
-        # Loop through each text element in the map document
         for textElement in arcpy.mapping.ListLayoutElements(mxd2, "TEXT_ELEMENT"):
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Max Density =":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ("Max Density = " + str(MaxD) + " per " + "grid cell")
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Grid%":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ("Grid cells = " + str(Grids) + " m ")
-
-            # Check if the text element contains the out of date text
             if textElement.text == "M1%":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ( str(TMi) )
+        mxd2.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '2DensityofMemberships.mxd'))
 
-        mxd2.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '2 Density of Memberships.mxd'))
+        logging.info ("ArcMap 02 updated")
 
-
-        map_file3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'6 Templates', 'T3MemberDensity.mxd')
+        map_file3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'06Templates', 'T3MemberDensity.mxd')
         mxd3 = arcpy.mapping.MapDocument(map_file3)
         df = arcpy.mapping.ListDataFrames(mxd3, "Memberships")[0]
         slyr = arcpy.mapping.ListLayers(mxd3, "SA_buffer", df)[0]
@@ -1602,32 +1525,18 @@ class MapTool(object):
         df.extent = slyrextent
         mxd3.save()
 
-        # Loop through each text element in the map document
         for textElement in arcpy.mapping.ListLayoutElements(mxd3, "TEXT_ELEMENT"):
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Max Density =":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ("Max Density = " + str(MMaxD) + " per " + "grid cell")
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Grid%":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ("Grid cells = " + str(Grids) + " m ")
-
-            # Check if the text element contains the out of date text
             if textElement.text == "M1%":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ( str(totmem3) )
+        mxd3.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '3DensityofMembers.mxd'))
 
+        logging.info ("ArcMap 03 updated")
 
-        mxd3.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '3 Density of Members.mxd'))
-
-
-        map_file4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'6 Templates', 'T4Percentage.mxd')
+        map_file4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'06Templates', 'T4Percentage.mxd')
         mxd4 = arcpy.mapping.MapDocument(map_file4)
         df = arcpy.mapping.ListDataFrames(mxd4, "Memberships")[0]
         slyr = arcpy.mapping.ListLayers(mxd4, "SA_buffer", df)[0]
@@ -1635,38 +1544,31 @@ class MapTool(object):
         df.extent = slyrextent
         mxd4.save()
 
-        # Loop through each text element in the map document
         for textElement in arcpy.mapping.ListLayoutElements(mxd4, "TEXT_ELEMENT"):
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Max%":
-
-            # If out of date text is found, replace it with the new text
                 maxt =str(vmax1f)
                 maxtv = maxt[0:4]
                 textElement.text = ("Max % members = " + str(maxtv) + " " )
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Mean%":
-
-            # If out of date text is found, replace it with the new text
                 vp =str(vmean1f)
                 vp3 = vp[0:4]
                 textElement.text = ("Mean % members = " + vp3 + " ")
-
-            # Check if the text element contains the out of date text
             if textElement.text == "Grid%":
-
-            # If out of date text is found, replace it with the new text
                 textElement.text = ("Grid cells = " + str(Grids) + " m ")
+        mxd4.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '4PercentageMembers.mxd'))
 
-        mxd4.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '4 Percentage Members.mxd'))
+        logging.info ("ArcMap 04 updated")
+
+
+
+
+
 
 
 
         if Reserves == 'true':
 
-            map_file5 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'6 Templates', 'T5ReservesPopn2Scale.mxd')
+            map_file5 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'06Templates', 'T5ReservesPopn2Scale.mxd')
             mxd5 = arcpy.mapping.MapDocument(map_file5)
             df = arcpy.mapping.ListDataFrames(mxd5, "Memberships")[0]
             slyr = arcpy.mapping.ListLayers(mxd5, "SA_buffer", df)[0]
@@ -1680,77 +1582,235 @@ class MapTool(object):
             df2.extent = slyrextent
             mxd5.save()
 
-            # Loop through each text element in the map document
             for textElement in arcpy.mapping.ListLayoutElements(mxd5, "TEXT_ELEMENT"):
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "Tx1%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = (  "Local (up to " + Buffer1 + " m)" + "  Landscape (" + Buffer1 + " to " + Buffer2 + " m)")
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "Tx2%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = (  "County (" + Buffer2 + " to " + Buffer3 + " m)" )
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "Grid%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = ("Grid cells = " + str(Grids) + " m ")
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "T1%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = ("Total population in the Study Area Buffer = " + str(totpop3) )
 
-
             tab1 = arcpy.mapping.ListTableViews(mxd5, "ZonePopn", df)[0]
-            rep1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports', 'PZone2.rlf')
-            img1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'nw1.tiff')
-
+            rep1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports', 'PZone2.rlf')
+            img1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'nw1.tiff')
             arcpy.mapping.ExportReport(tab1, rep1, img1)
             for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
                 if image.name == "tt":
                     image.sourceImage = img1
 
-            tab2 = arcpy.mapping.ListTableViews(mxd5, "TopTLocalReserves", df)[0]
-            rep2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports', 'Local.rlf')
-            img2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'nw2.tiff')
+            Tplo = arcpy.GetCount_management("TopTLocalReserves")
+            Tplot = int(Tplo.getOutput(0))
 
-            arcpy.mapping.ExportReport(tab2, rep2, img2)
-            for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
-                if image.name == "loc":
-                    image.sourceImage = img2
+            if Tplot > 0:
+                tab2 = arcpy.mapping.ListTableViews(mxd5, "TopTLocalReserves", df)[0]
+                rep2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports', 'Local.rlf')
+                img2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'nw2.tiff')
+                arcpy.mapping.ExportReport(tab2, rep2, img2)
+                for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
+                    if image.name == "loc":
+                        image.sourceImage = img2
 
-            tab3 = arcpy.mapping.ListTableViews(mxd5, "TopTLandscapeReserves", df)[0]
-            rep3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports','Land.rlf')
-            img3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'nw3.tiff')
+            else:
+                img2x = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'plo0.tif')
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "loc":
+                        image.sourceImage = img2x
 
-            arcpy.mapping.ExportReport(tab3, rep3, img3)
-            for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
-                if image.name == "land":
-                    image.sourceImage = img3
+            Tpla = arcpy.GetCount_management("TopTLandscapeReserves")
+            Tplat = int(Tpla.getOutput(0))
 
-            tab4 = arcpy.mapping.ListTableViews(mxd5, "TopTCountyReserves", df)[0]
-            rep4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports','County.rlf')
-            img4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'nw4.tiff')
+            if Tplat > 0:
+                tab3 = arcpy.mapping.ListTableViews(mxd5, "TopTLandscapeReserves", df)[0]
+                rep3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports','Land.rlf')
+                img3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'nw3.tiff')
+                arcpy.mapping.ExportReport(tab3, rep3, img3)
+                for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
+                    if image.name == "land":
+                        image.sourceImage = img3
 
-            arcpy.mapping.ExportReport(tab4, rep4, img4)
-            for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
-                if image.name == "county":
-                    image.sourceImage = img4
+            else:
+                img3x = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'pla0.tif')
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "land":
+                        image.sourceImage = img3x
 
-            mxd5.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '5 Reserves Population.mxd'))
+            Tcr = arcpy.GetCount_management("TopTCountyReserves")
+            Tcrt = int(Tcr.getOutput(0))
+
+            if Tcrt > 0:
+                tab4 = arcpy.mapping.ListTableViews(mxd5, "TopTCountyReserves", df)[0]
+                rep4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports','County.rlf')
+                img4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'nw4.tiff')
+                arcpy.mapping.ExportReport(tab4, rep4, img4)
+                for image in arcpy.mapping.ListLayoutElements(mxd5, "PICTURE_ELEMENT"):
+                    if image.name == "county":
+                        image.sourceImage = img4
+
+            else:
+                img4x = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'pc0.tif')
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "county":
+                        image.sourceImage = img4x
+
+            intabepr = "ReservesPoints"
+            fieldName1 = "PLoClass"
+            fieldName2 = "PLaClass"
+            fieldName3 = "PCoClass"
+            fieldPrecision = ""
+            fieldAlias = ""
+            fieldLength = ""
+            arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.AddField_management(intabepr, fieldName2, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.AddField_management(intabepr, fieldName3, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+
+
+            outStatsTable = "stats_plocal_out_MX"
+            statsFields = [["PopnLocal", "MIN"],["PopnLocal", "MAX"]]
+            arcpy.Statistics_analysis(intabepr, outStatsTable, statsFields)
+
+            mlanmin = arcpy.da.SearchCursor("stats_plocal_out_MX",("MIN_PopnLocal",)).next()[0]
+            if mlanmin:
+                mlanmin2 = int(mlanmin)
+                mlanmin3 = '{0:,}'.format(mlanmin2)
+                logging.info("PopnLocal: Min =  " + str(mlanmin2) )
+                logging.info("PopnLocal: Min =  " + str(mlanmin3) )
+
+                mlanmax = arcpy.da.SearchCursor("stats_plocal_out_MX",("MAX_PopnLocal",)).next()[0]
+                mlanmax2 = int(mlanmax)
+                mlanmax3 = '{0:,}'.format(mlanmax2)
+                logging.info("PopnLocal: Max =  " + str(mlanmax2) )
+                logging.info("PopnLocal: Max =  " + str(mlanmax3) )
+
+                mrange = mlanmax2 - mlanmin2
+                interval = 4
+                eqint = mrange / interval
+                eqint2 = int(eqint)
+                logging.info("PopnLocal: interval =  " + str(eqint2) )
+                logging.info("PopnLocal: range =  " + str(mrange) )
+
+                pcls1 = mlanmin2 + eqint2
+                pcls2 = mlanmin2 + eqint2 + eqint2
+                pcls3 = mlanmin2 + eqint2 + eqint2 + eqint2
+
+                updateFields = ("PopnLocal", "PLoClass")
+                with arcpy.da.UpdateCursor("ReservesPoints", updateFields) as cursor:
+                    for row in cursor:
+                        if (row[0] != None and row[0] <= pcls1):
+                            row[1] = 1
+                        elif (row[0] > pcls1 and row[0] <= pcls2 ) :
+                            row[1] = 2
+                        elif (row[0] > pcls2 and row[0] <= pcls3 ) :
+                            row[1] = 3
+                        elif (row[0] > pcls3) :
+                            row[1] = 4
+                        else:
+                            row[1] = 0
+                        cursor.updateRow(row)
+            else:
+                logging.info("PopnLocal: no population present in 'local' travel distance" )
+
+
+            outStatsTable = "stats_pout_MX"
+            statsFields = [["PopnLandscape", "MIN"],["PopnLandscape", "MAX"]]
+            arcpy.Statistics_analysis(intabepr, outStatsTable, statsFields)
+
+            mlanmin = arcpy.da.SearchCursor("stats_pout_MX",("MIN_PopnLandscape",)).next()[0]
+            if mlanmin:
+                mlanmin2 = int(mlanmin)
+                mlanmin3 = '{0:,}'.format(mlanmin2)
+                logging.info("PopnLandscape: Min =  " + str(mlanmin2) )
+                logging.info("PopnLandscape: Min =  " + str(mlanmin3) )
+
+                mlanmax = arcpy.da.SearchCursor("stats_pout_MX",("MAX_PopnLandscape",)).next()[0]
+                mlanmax2 = int(mlanmax)
+                mlanmax3 = '{0:,}'.format(mlanmax2)
+                logging.info("PopnLandscape: Max =  " + str(mlanmax2) )
+                logging.info("PopnLandscape: Max =  " + str(mlanmax3) )
+
+                mrange = mlanmax2 - mlanmin2
+                interval = 3
+                eqint = mrange / interval
+                eqint2 = int(eqint)
+                logging.info("PopnLandscape: interval =  " + str(eqint2) )
+                logging.info("PopnLandscape: range =  " + str(mrange) )
+
+                pcls1 = mlanmin2 + eqint2
+                pcls2 = mlanmin2 + eqint2 + eqint2
+                pcls3 = mlanmin2 + eqint2 + eqint2 + eqint2
+
+                updateFields = ("PopnLandscape", "PLaClass")
+                with arcpy.da.UpdateCursor("ReservesPoints", updateFields) as cursor:
+                    for row in cursor:
+                        if (row[0] != None and row[0] <= pcls1):
+                            row[1] = 1
+                        elif (row[0] > pcls1 and row[0] <= pcls2 ) :
+                            row[1] = 2
+                        elif (row[0] > pcls2 and row[0] <= pcls3 ) :
+                            row[1] = 3
+                        elif (row[0] > pcls3) :
+                            row[1] = 4
+                        else:
+                            row[1] = 0
+                        cursor.updateRow(row)
+            else:
+                logging.info("PopnLandscape: no population present in 'landscape' travel distance" )
+
+            outStatsTable = "stats_pcounty_out_MX"
+            statsFields = [["PopnCounty", "MIN"],["PopnCounty", "MAX"]]
+            arcpy.Statistics_analysis(intabepr, outStatsTable, statsFields)
+
+            mlanmin = arcpy.da.SearchCursor("stats_pcounty_out_MX",("MIN_PopnCounty",)).next()[0]
+            if mlanmin:
+                mlanmin2 = int(mlanmin)
+                mlanmin3 = '{0:,}'.format(mlanmin2)
+                logging.info("PopnCounty: Min =  " + str(mlanmin2) )
+                logging.info("PopnCounty: Min =  " + str(mlanmin3) )
+
+                mlanmax = arcpy.da.SearchCursor("stats_pcounty_out_MX",("MAX_PopnCounty",)).next()[0]
+                mlanmax2 = int(mlanmax)
+                mlanmax3 = '{0:,}'.format(mlanmax2)
+                logging.info("PopnCounty: Max =  " + str(mlanmax2) )
+                logging.info("PopnCounty: Max =  " + str(mlanmax3) )
+
+                mrange = mlanmax2 - mlanmin2
+                interval = 3
+                eqint = mrange / interval
+                eqint2 = int(eqint)
+                logging.info("PopnCounty: interval =  " + str(eqint2) )
+                logging.info("PopnCounty: range =  " + str(mrange) )
+
+                pcls1 = mlanmin2 + eqint2
+                pcls2 = mlanmin2 + eqint2 + eqint2
+                pcls3 = mlanmin2 + eqint2 + eqint2 + eqint2
+
+                updateFields = ("PopnCounty", "PCoClass")
+                with arcpy.da.UpdateCursor("ReservesPoints", updateFields) as cursor:
+                    for row in cursor:
+                        if (row[0] != None and row[0] <= pcls1):
+                            row[1] = 1
+                        elif (row[0] > pcls1 and row[0] <= pcls2 ) :
+                            row[1] = 2
+                        elif (row[0] > pcls2 and row[0] <= pcls3 ) :
+                            row[1] = 3
+                        elif (row[0] > pcls3) :
+                            row[1] = 4
+                        else:
+                            row[1] = 0
+                        cursor.updateRow(row)
+            else:
+                logging.info("PopnCounty: no population present in 'county' travel distance" )
+
+            mxd5.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '5ReservesPopulation.mxd'))
+
+            logging.info ("ArcMap 05 updated")
 
 
 
 
 
-            map_file6 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'6 Templates', 'T6ReservesMember2Scale.mxd')
+            map_file6 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'06Templates', 'T6ReservesMember2Scale.mxd')
             mxd6 = arcpy.mapping.MapDocument(map_file6)
             df = arcpy.mapping.ListDataFrames(mxd6, "Memberships")[0]
             slyr = arcpy.mapping.ListLayers(mxd6, "SA_buffer", df)[0]
@@ -1764,77 +1824,234 @@ class MapTool(object):
             df2.extent = slyrextent
             mxd6.save()
 
-            # Loop through each text element in the map document
             for textElement in arcpy.mapping.ListLayoutElements(mxd6, "TEXT_ELEMENT"):
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "Tx1%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = (  "Local (up to " + Buffer1 + " m)" + "  Landscape (" + Buffer1 + " to " + Buffer2 + " m)")
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "Tx2%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = (  "County (" + Buffer2 + " to " + Buffer3 + " m)" )
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "Grid%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = ("Grid cells = " + str(Grids) + " m ")
-
-                # Check if the text element contains the out of date text
                 if textElement.text == "T1%":
-
-                # If out of date text is found, replace it with the new text
                     textElement.text = ("Total number of members in the Study Area Buffer = " + str(totmem3) )
 
-
             tab1 = arcpy.mapping.ListTableViews(mxd6, "MbrsPopn", df)[0]
-            rep1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports', 'MbrZone.rlf')
-            img1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'M1.tiff')
-
+            rep1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports', 'MbrZone.rlf')
+            img1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'M1.tiff')
             arcpy.mapping.ExportReport(tab1, rep1, img1)
             for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
                 if image.name == "tt":
                     image.sourceImage = img1
 
-            tab2 = arcpy.mapping.ListTableViews(mxd6, "TopMLocalReserves", df)[0]
-            rep2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports', 'MLocal.rlf')
-            img2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'M2.tiff')
+            Tmlo = arcpy.GetCount_management("TopMLocalReserves")
+            Tmlot = int(Tmlo.getOutput(0))
 
-            arcpy.mapping.ExportReport(tab2, rep2, img2)
-            for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
-                if image.name == "loc":
-                    image.sourceImage = img2
+            if Tmlot > 0:
+                tab2 = arcpy.mapping.ListTableViews(mxd6, "TopMLocalReserves", df)[0]
+                rep2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports', 'MLocal.rlf')
+                img2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'M2.tiff')
+                arcpy.mapping.ExportReport(tab2, rep2, img2)
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "loc":
+                        image.sourceImage = img2
 
-            tab3 = arcpy.mapping.ListTableViews(mxd6, "TopMLandscapeReserves", df)[0]
-            rep3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports','MLand.rlf')
-            img3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'M3.tiff')
+            else:
+                img2x = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'mlo0.tif')
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "loc":
+                        image.sourceImage = img2x
 
-            arcpy.mapping.ExportReport(tab3, rep3, img3)
-            for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
-                if image.name == "land":
-                    image.sourceImage = img3
+            Tmla = arcpy.GetCount_management("TopMLandscapeReserves")
+            Tmlat = int(Tmla.getOutput(0))
 
-            tab4 = arcpy.mapping.ListTableViews(mxd6, "TopMCountyReserves", df)[0]
-            rep4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'8 Reports','MCounty.rlf')
-            img4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'9 Images', 'M4.tiff')
+            if Tmlat > 0:
+                tab3 = arcpy.mapping.ListTableViews(mxd6, "TopMLandscapeReserves", df)[0]
+                rep3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports','MLand.rlf')
+                img3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'M3.tiff')
+                arcpy.mapping.ExportReport(tab3, rep3, img3)
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "land":
+                        image.sourceImage = img3
 
-            arcpy.mapping.ExportReport(tab4, rep4, img4)
-            for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
-                if image.name == "county":
-                    image.sourceImage = img4
+            else:
+                img3x = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'mla0.tif')
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "land":
+                        image.sourceImage = img3x
 
-            mxd6.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '6 Reserves Members.mxd'))
+            Tmc = arcpy.GetCount_management("TopMCountyReserves")
+            Tmct = int(Tmc.getOutput(0))
+
+            if Tmct > 0:
+                tab4 = arcpy.mapping.ListTableViews(mxd6, "TopMCountyReserves", df)[0]
+                rep4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'08Reports','MCounty.rlf')
+                img4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'M4.tiff')
+                arcpy.mapping.ExportReport(tab4, rep4, img4)
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "county":
+                        image.sourceImage = img4
+
+            else:
+                img4x = os.path.join(os.path.dirname(os.path.dirname(__file__)),'09Images', 'mc0.tif')
+                for image in arcpy.mapping.ListLayoutElements(mxd6, "PICTURE_ELEMENT"):
+                    if image.name == "county":
+                        image.sourceImage = img4x
+
+            intabepr = "ReservesPoints"
+            fieldName1 = "MbsLoClass"
+            fieldName2 = "MbsLaClass"
+            fieldName3 = "MbsCoClass"
+            fieldPrecision = ""
+            fieldAlias = ""
+            fieldLength = ""
+            arcpy.AddField_management(intabepr, fieldName1, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.AddField_management(intabepr, fieldName2, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+            arcpy.AddField_management(intabepr, fieldName3, "LONG", fieldPrecision, "", "", fieldAlias, "NULLABLE")
+
+
+            outStatsTable = "stats_local_out_MX"
+            statsFields = [["MbsLocal", "MIN"],["MbsLocal", "MAX"]]
+            arcpy.Statistics_analysis(intabepr, outStatsTable, statsFields)
+
+            mlanmin = arcpy.da.SearchCursor("stats_local_out_MX",("MIN_MbsLocal",)).next()[0]
+            if mlanmin:
+                mlanmin2 = int(mlanmin)
+                mlanmin3 = '{0:,}'.format(mlanmin2)
+                logging.info("MbsLocal: Min =  " + str(mlanmin2) )
+                logging.info("MbsLocal: Min =  " + str(mlanmin3) )
+
+                mlanmax = arcpy.da.SearchCursor("stats_local_out_MX",("MAX_MbsLocal",)).next()[0]
+                mlanmax2 = int(mlanmax)
+                mlanmax3 = '{0:,}'.format(mlanmax2)
+                logging.info("MbsLocal: Max =  " + str(mlanmax2) )
+                logging.info("MbsLocal: Max =  " + str(mlanmax3) )
+
+                mrange = mlanmax2 - mlanmin2
+                interval = 3
+                eqint = mrange / interval
+                eqint2 = int(eqint)
+                logging.info("MbsLocal: interval =  " + str(eqint2) )
+                logging.info("MbsLocal: range =  " + str(mrange) )
+
+                cls1 = mlanmin2 + eqint2
+                cls3 = mlanmin2 + eqint2 + eqint2
+
+                updateFields = ("MbsLocal", "MbsLoClass")
+                with arcpy.da.UpdateCursor("ReservesPoints", updateFields) as cursor:
+                    for row in cursor:
+                        if (row[0] != None and row[0] <= cls1):
+                            row[1] = 1
+                        elif (row[0] >= cls3) :
+                            row[1] = 3
+                        elif (row[0] > cls1 and row[0]  < cls3) :
+                            row[1] = 2
+                        else:
+                            row[1] = 0
+                        cursor.updateRow(row)
+            else:
+                logging.info("MbsLocal: no members present in 'local' travel distance" )
+
+            outStatsTable = "stats_out_MX"
+            statsFields = [["MbsLandscape", "MIN"],["MbsLandscape", "MAX"]]
+            arcpy.Statistics_analysis(intabepr, outStatsTable, statsFields)
+
+            mlanmin = arcpy.da.SearchCursor("stats_out_MX",("MIN_MbsLandscape",)).next()[0]
+            if mlanmin:
+                mlanmin2 = int(mlanmin)
+                mlanmin3 = '{0:,}'.format(mlanmin2)
+                logging.info("MbsLandscape: Min =  " + str(mlanmin2) )
+                logging.info("MbsLandscape: Min =  " + str(mlanmin3) )
+
+                mlanmax = arcpy.da.SearchCursor("stats_out_MX",("MAX_MbsLandscape",)).next()[0]
+                mlanmax2 = int(mlanmax)
+                mlanmax3 = '{0:,}'.format(mlanmax2)
+                logging.info("MbsLandscape: Max =  " + str(mlanmax2) )
+                logging.info("MbsLandscape: Max =  " + str(mlanmax3) )
+
+                mrange = mlanmax2 - mlanmin2
+                interval = 3
+                eqint = mrange / interval
+                eqint2 = int(eqint)
+                logging.info("MbsLandscape: interval =  " + str(eqint2) )
+                logging.info("MbsLandscape: range =  " + str(mrange) )
+
+                cls1 = mlanmin2 + eqint2
+                cls3 = mlanmin2 + eqint2 + eqint2
+
+                updateFields = ("MbsLandscape", "MbsLaClass")
+                with arcpy.da.UpdateCursor("ReservesPoints", updateFields) as cursor:
+                    for row in cursor:
+                        if (row[0] != None and row[0] <= cls1):
+                            row[1] = 1
+                        elif (row[0] >= cls3) :
+                            row[1] = 3
+                        elif (row[0] > cls1 and row[0]  < cls3) :
+                            row[1] = 2
+                        else:
+                            row[1] = 0
+                        cursor.updateRow(row)
+            else:
+                logging.info("MbsLandscape: no members present in 'landscape' travel distance" )
+
+
+            outStatsTable = "stats_county_out_MX"
+            statsFields = [["MbsCounty", "MIN"],["MbsCounty", "MAX"]]
+            arcpy.Statistics_analysis(intabepr, outStatsTable, statsFields)
+
+            mlanmin = arcpy.da.SearchCursor("stats_county_out_MX",("MIN_MbsCounty",)).next()[0]
+            if mlanmin:
+                mlanmin2 = int(mlanmin)
+                mlanmin3 = '{0:,}'.format(mlanmin2)
+                logging.info("MbsCounty: Min =  " + str(mlanmin2) )
+                logging.info("MbsCounty: Min =  " + str(mlanmin3) )
+
+                mlanmax = arcpy.da.SearchCursor("stats_county_out_MX",("MAX_MbsCounty",)).next()[0]
+                mlanmax2 = int(mlanmax)
+                mlanmax3 = '{0:,}'.format(mlanmax2)
+                logging.info("MbsCounty: Max =  " + str(mlanmax2) )
+                logging.info("MbsCounty: Max =  " + str(mlanmax3) )
+
+                mrange = mlanmax2 - mlanmin2
+                interval = 3
+                eqint = mrange / interval
+                eqint2 = int(eqint)
+                logging.info("MbsCounty: interval =  " + str(eqint2) )
+                logging.info("MbsCounty: range =  " + str(mrange) )
+
+                cls1 = mlanmin2 + eqint2
+                cls3 = mlanmin2 + eqint2 + eqint2
+
+                updateFields = ("MbsCounty", "MbsCoClass")
+                with arcpy.da.UpdateCursor("ReservesPoints", updateFields) as cursor:
+                    for row in cursor:
+                        if (row[0] != None and row[0] <= cls1):
+                            row[1] = 1
+                        elif (row[0] >= cls3) :
+                            row[1] = 3
+                        elif (row[0] > cls1 and row[0]  < cls3) :
+                            row[1] = 2
+                        else:
+                            row[1] = 0
+                        cursor.updateRow(row)
+            else:
+                logging.info("MbsCounty: no members present in 'county' travel distance" )
+
+
+            mxd6.activeView = df.name
+            arcpy.RefreshTOC()
+            arcpy.RefreshActiveView()
+
+            mxd6.activeView = df2.name
+            arcpy.RefreshTOC()
+            arcpy.RefreshActiveView()
+
+            mxd6.saveACopy(os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '6ReservesMembers.mxd'))
+
+            logging.info ("ArcMap 06 updated")
 
 
 
         if PDFs == 'true':
-
-            arcpy.AddMessage(" ")
+            logging.info ("PDFs to be exported")
             arcpy.AddMessage("    Saving PDFs")
 
             if fulltext == 'true':
@@ -1844,7 +2061,7 @@ class MapTool(object):
                 timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
                 messages.addMessage("        Progress time: " + str(timetaken))
 
-            map_file1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '1 Type of membership.mxd')
+            map_file1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '1TypeofMembership.mxd')
 
             mxd1 = arcpy.mapping.MapDocument(map_file1)
             mxdname = mxd1.filePath.split("\\")[-1]
@@ -1856,9 +2073,9 @@ class MapTool(object):
               arcpy.mapping.ExportToPDF(mxd1, exportPath+"\\"+ mxdname + str(pageNum)+ name + ".pdf", resolution = 450)
               pdf1 = exportPath+"\\"+ mxdname + str(pageNum)+ name + ".pdf"
             del mxd1
+            logging.info("PDF 01 saved")
 
-
-            map_file2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '2 Density of Memberships.mxd')
+            map_file2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '2DensityofMemberships.mxd')
 
             mxd2 = arcpy.mapping.MapDocument(map_file2)
             mxdname = mxd2.filePath.split("\\")[-1]
@@ -1870,9 +2087,9 @@ class MapTool(object):
               arcpy.mapping.ExportToPDF(mxd2, exportPath+"\\"+ mxdname + str(pageNum)+ name + ".pdf", resolution = 450)
               pdf2 = exportPath+"\\"+ mxdname + str(pageNum)+ name + ".pdf"
             del mxd2
+            logging.info("PDF 02 saved")
 
-
-            map_file3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '3 Density of Members.mxd')
+            map_file3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '3DensityofMembers.mxd')
             mxd3 = arcpy.mapping.MapDocument(map_file3)
             mxdname = mxd3.filePath.split("\\")[-1]
             mxdname = mxdname.replace(".mxd" , "")
@@ -1883,9 +2100,9 @@ class MapTool(object):
               arcpy.mapping.ExportToPDF(mxd3, exportPath+"\\"+ mxdname + str(pageNum)+ name + ".pdf", resolution = 450)
               pdf3 = exportPath+"\\"+ mxdname + str(pageNum)+ name + ".pdf"
             del mxd3
+            logging.info("PDF 03 saved")
 
-
-            map_file4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '4 Percentage Members.mxd')
+            map_file4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '4PercentageMembers.mxd')
             mxd4 = arcpy.mapping.MapDocument(map_file4)
             mxdname4 = mxd4.filePath.split("\\")[-1]
             mxdname4 = mxdname4.replace(".mxd" , "")
@@ -1896,27 +2113,31 @@ class MapTool(object):
               arcpy.mapping.ExportToPDF(mxd4, exportPath+"\\"+ mxdname4 + str(pageNum)+ name + ".pdf", resolution = 450)
               pdf4 = exportPath+"\\"+ mxdname4 + str(pageNum)+ name + ".pdf"
             del mxd4
-
+            logging.info("PDF 04 saved")
 
             if Reserves == 'true':
 
-                map_file5 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '5 Reserves Population.mxd')
+                map_file5 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '5ReservesPopulation.mxd')
                 mxd5 = arcpy.mapping.MapDocument(map_file5)
                 mxdname5 = mxd5.filePath.split("\\")[-1]
                 mxdname5 = mxdname5.replace(".mxd" , "")
+                pageNum = 1
                 exportPath = PDFloctn
                 arcpy.mapping.ExportToPDF(mxd5, exportPath+"\\"+ mxdname5 + str(pageNum)+ name + ".pdf", resolution = 450)
                 pdf5 = exportPath+"\\"+ mxdname5 + str(pageNum)+ name + ".pdf"
                 del mxd5
+                logging.info("PDF 05 saved")
 
-                map_file6 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '6 Reserves Members.mxd')
+                map_file6 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '6ReservesMembers.mxd')
                 mxd6 = arcpy.mapping.MapDocument(map_file6)
                 mxdname6 = mxd6.filePath.split("\\")[-1]
                 mxdname6 = mxdname6.replace(".mxd" , "")
+                pageNum = 1
                 exportPath = PDFloctn
                 arcpy.mapping.ExportToPDF(mxd6, exportPath+"\\"+ mxdname6 + str(pageNum)+ name + ".pdf", resolution = 450)
                 pdf6 = exportPath+"\\"+ mxdname6 + str(pageNum)+ name + ".pdf"
                 del mxd6
+                logging.info("PDF 06 saved")
 
             arcpy.AddMessage("    PDFs saved to " + PDFloctn)
 
@@ -1947,17 +2168,15 @@ class MapTool(object):
 
         if Aview1 == 'true':
 
-            # open the file with default application (ArcMap)
-
             arcpy.AddMessage(" ")
             arcpy.AddMessage("    Opening data in ArcMaps")
 
-            map1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '1 Type of membership.mxd')
-            map2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '2 Density of Memberships.mxd')
-            map3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '3 Density of Members.mxd')
-            map4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '4 Percentage Members.mxd')
-            map5 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '5 Reserves Population.mxd')
-            map6 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'1 ArcMaps', '6 Reserves Members.mxd')
+            map1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '1TypeofMembership.mxd')
+            map2 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '2DensityofMemberships.mxd')
+            map3 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '3DensityofMembers.mxd')
+            map4 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '4PercentageMembers.mxd')
+            map5 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '5ReservesPopulation.mxd')
+            map6 = os.path.join(os.path.dirname(os.path.dirname(__file__)),'01ArcMaps', '6ReservesMembers.mxd')
 
 
             arcpy.AddMessage("    ArcMap  " + map1)
@@ -1980,7 +2199,8 @@ class MapTool(object):
               os.startfile(map5)
               os.startfile(map6)
 
-            time.sleep(15)  # sleep time in seconds...
+            time.sleep(15)
+
             arcpy.AddMessage("    ArcMaps opened (one per map document)")
 
         else:
@@ -2018,13 +2238,16 @@ class MapTool(object):
         else:
             arcpy.AddMessage(" ")
 
-
-
-
-
-
+        elapsed_time_seconds_tool1 = time.time() - start_time_t0
+        mt1, st1 = divmod(elapsed_time_seconds_tool1, 60)
+        ht1, mt1 = divmod(mt1, 60)
+        timetaken =  "%d hours %02d minutes %02d seconds" % (ht1, mt1, st1)
+        logging.info( "Analysis completed")
+        logging.info("Progress time: " + str(timetaken))
 
         arcpy.AddMessage("    Analysis completed")
         arcpy.AddMessage(" ")
+        logging.shutdown()
+        logging.getLogger(None).handlers =[]
 
         return
